@@ -1,6 +1,6 @@
 import {createServer} from 'node:http';
 import {json} from 'node:stream/consumers';
-import {createTask, deleteTask, getAllTasks} from "./functions/tasks_storage.mjs";
+import {createTask, deleteTask, getAllTasks, updateTask} from "./functions/tasks_storage.mjs";
 
 
 createServer(async (req, res) => {
@@ -9,15 +9,28 @@ createServer(async (req, res) => {
         const url = new URL(req.url, `http://${req.headers.host}`);
 
         if (url.pathname === '/tasks') {
-            if (req.method === 'GET') {
-                const tasks = await getAllTasks();
-                res.write(JSON.stringify(tasks));
-            }else if (req.method === 'POST') {
-                const newTask = await createTask(await json(req));
-                res.write(JSON.stringify(newTask));
-            }else if (req.method === 'DELETE') {
-                await deleteTask(parseInt(url.searchParams.get('id'),10));
-                res.writeHead(204)
+
+            try {
+                switch (req.method) {
+                    case 'GET':
+                        const tasks = await getAllTasks();
+                        res.write(JSON.stringify(tasks));
+                        break;
+                    case 'POST':
+                        const newTask = await createTask(await json(req));
+                        res.write(JSON.stringify(newTask));
+                        break;
+                    case 'DELETE':
+                        await deleteTask(parseInt(url.searchParams.get('id'),10));
+                        res.writeHead(204)
+                        break;
+                    case 'PUT':
+                        const task = await updateTask(await json(req));
+                        res.write(JSON.stringify(task));
+                        break;
+                }
+            }catch(err) {
+                return res.status(500).send(err.message);
             }
 
         }else {
